@@ -487,95 +487,33 @@ btnGallery.addEventListener('click', () => {
 });
 
 /* ============================================================
-   GALERÍA COMPARTIDA — catbox.moe + npoint.io
+   CLOUDFLARE R2 — GALERÍA PROPIA
    ------------------------------------------------------------
-   Telegram no puede alojar una galería pública (el bot no "ve"
-   sus propios mensajes). Para la galería usamos servicios
-   gratuitos sin registro para los invitados:
-
-   - Pixeldrain: aloja cada foto/vídeo (hasta 10 GB por archivo).
-   - catbox.moe: respaldo si Pixeldrain falla (200 MB).
-   - npoint.io: guarda la LISTA de archivos para que todos la vean.
-
-   SÓLO TIENES QUE CREAR EL "BIN" DE NPOINT (1 minuto):
-   1. Entra en https://www.npoint.io y pulsa "+ New".
-   2. Borra el contenido y pega exactamente:   { "items": [] }
-   3. Guarda y copia el ID de la URL
-      (https://www.npoint.io/XXXXXXXXXXXXXXXX → esa X es el ID).
-   4. En la API de ese bin, asegúrate de que "Read" y "Write"
-      están abiertos (es lo por defecto).
-   5. Pégalo abajo. ¡Listo! La galería se llena sola.
+   La galería se aloja en vuestro bucket de Cloudflare R2:
+   - CLOUDFLARE_WORKER_URL: la URL del Worker (sube y lista).
+   - R2_PUBLIC_URL: la URL pública del bucket (sirve los
+     archivos para ver y descargar).
    ============================================================ */
-const NPOINT_BIN_ID = "TU_BIN_AQUI";
-
-/* ============================================================
-   CLOUDFLARE R2 — MODO PROPIO (opcional, recomendado)
-   ------------------------------------------------------------
-   Si configuráis Cloudflare, la galería se aloja en VUESTRO
-   espacio en vez de en Pixeldrain/catbox/npoint. Necesitáis:
-   1. CLOUDFLARE_WORKER_URL: la URL del Worker que creéis
-      (https://algo.usuario.workers.dev).
-   2. R2_PUBLIC_URL: la URL pública del bucket
-      (https://pub-xxxxx.r2.dev o vuestro dominio).
-   Dejad las dos como están para usar el modo gratuito actual.
-   ============================================================ */
-const CLOUDFLARE_WORKER_URL = "https://boda-fotos.marlenandrade13.workers.dev/";
+const CLOUDFLARE_WORKER_URL = "https://boda-fotos.marlenandrade13.workers.dev";
 const R2_PUBLIC_URL         = "https://pub-cf8b1cbc06494fa9b98087e67c78841c.r2.dev";
-const USE_CLOUDFLARE = CLOUDFLARE_WORKER_URL !== "TU_WORKER_AQUI"
-                    && R2_PUBLIC_URL !== "TU_URL_PUBLICA_AQUI";
 
 const galleryGrid  = document.getElementById('galleryGrid');
 const galleryEmpty = document.getElementById('galleryEmpty');
 
-/* Sube el archivo: Cloudflare R2 (si está configurado) o, si no,
-   Pixeldrain (hasta 10 GB) con catbox de respaldo */
+/* Sube el archivo al bucket R2 a través del Worker */
 async function uploadFile(blob, filename) {
-  // Modo Cloudflare: subida directa a vuestro bucket
-  if (USE_CLOUDFLARE) {
-    const fd = new FormData();
-    fd.append('file', blob, filename);
-    const r = await fetch(`${CLOUDFLARE_WORKER_URL}/upload`, { method: 'POST', body: fd });
-    const d = await r.json();
-    if (d && d.key) return R2_PUBLIC_URL + '/' + d.key;
-    throw new Error('Fallo al publicar en la galería');
-  }
-  // Intento 1: Pixeldrain (archivos grandes)
-  try {
-    const fd = new FormData();
-    fd.append('file', blob, filename);
-    const r = await fetch('https://pixeldrain.com/api/upload', { method: 'POST', body: fd });
-    const d = await r.json();
-    if (d && d.id) return `https://pixeldrain.com/api/file/${d.id}`;
-    throw new Error('Pixeldrain rechazó el archivo');
-  } catch (e) {
-    console.warn('Pixeldrain falló, probando catbox:', e);
-  }
-  // Intento 2: catbox (respaldo, máx. 200 MB)
   const fd = new FormData();
-  fd.append('reqtype', 'fileupload');
-  fd.append('fileToUpload', blob, filename);
-  const r = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: fd });
-  const text = (await r.text()).trim();
-  if (!/^https?:\/\//.test(text)) throw new Error('Fallo al publicar en la galería');
-  return text;
+  fd.append('file', blob, filename);
+  const r = await fetch(`${CLOUDFLARE_WORKER_URL}/upload`, { method: 'POST', body: fd });
+  const d = await r.json();
+  if (d && d.key) return R2_PUBLIC_URL + '/' + d.key;
+  throw new Error('Fallo al publicar en la galería');
 }
 
-/* Publica el archivo en la galería (Cloudflare o npoint) */
+/* Publica el archivo en la galería (el bucket ES la galería) */
 async function publishToGallery(blob, filename, isVideo) {
   try {
-    if (USE_CLOUDFLARE) {
-      await uploadFile(blob, filename); // el bucket ES la galería
-      return;
-    }
-    const fileUrl = await uploadFile(blob, filename);
-    const bin = await (await fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`)).json();
-    const items = Array.isArray(bin.items) ? bin.items : [];
-    items.unshift({ url: fileUrl, t: Date.now(), v: !!isVideo });
-    await fetch(`https://api.npoint.io/${NPOINT_BIN_ID}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items.slice(0, 200) })
-    });
+    await uploadFile(blob, filename);
   } catch (e) {
     console.warn('Galería:', e); // no bloquea el envío a Telegram
   }
@@ -616,17 +554,12 @@ function addGalleryItem(entry) {
 /* Repinta la galería (máx. 60 en pantalla) */
 async function refreshGallery() {
   try {
-    let items = [];
-    if (USE_CLOUDFLARE) {
-      // Pedimos al Worker la lista de archivos del bucket
-      const keys = await (await fetch(`${CLOUDFLARE_WORKER_URL}/list`)).json();
-      items = keys.map(k => ({ url: `${R2_PUBLIC_URL}/${k}`, v: /\.(mp4|mov|webm|mkv|avi)$/i.test(k) }));
-    } else {
-      if (NPOINT_BIN_ID === 'TU_BIN_AQUI') return;
-      const bin = await (await fetch(`https://api.npoint.io/${NPOINT_BIN_ID}?t=${Date.now()}`)).json();
-      items = (Array.isArray(bin.items) ? bin.items : []);
-    }
-    items = items.slice(0, 60);
+    // Pedimos al Worker la lista de archivos del bucket
+    const keys = await (await fetch(`${CLOUDFLARE_WORKER_URL}/list`)).json();
+    const items = keys.map(k => ({
+      url: `${R2_PUBLIC_URL}/${k}`,
+      v: /\.(mp4|mov|webm|mkv|avi)$/i.test(k)
+    })).slice(0, 60);
     galleryGrid.innerHTML = '';
     items.forEach(addGalleryItem);
     galleryEmpty.style.display = items.length ? 'none' : 'block';
