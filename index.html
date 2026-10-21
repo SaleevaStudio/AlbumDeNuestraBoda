@@ -59,7 +59,6 @@ body::after{
   margin:clamp(10px,3vw,28px) auto;
   padding:clamp(7px,1.6vw,14px);
 }
-@media(min-width:640px){.frame{margin-left:auto;margin-right:auto}}
 .frame::before{
   content:"";position:absolute;inset:0;pointer-events:none;
   border:1px solid rgba(184,145,47,.75);
@@ -93,6 +92,14 @@ body::after{
 .splatter{position:absolute;pointer-events:none;z-index:0;opacity:.8}
 .content{position:relative;z-index:2;text-align:center}
 
+/* corner botanicals, aligned with the outer gold line (inset 0) */
+.corner{position:absolute;z-index:5;pointer-events:none;width:clamp(110px,24vw,190px)}
+.corner.tl{top:0;left:0}
+.corner.tr{top:0;right:0;transform:scaleX(-1)}
+.corner.bl{bottom:0;left:0;transform:scaleY(-1);width:clamp(95px,20vw,150px)}
+.corner.br{bottom:0;right:0;transform:scale(-1);width:clamp(95px,20vw,150px)}
+.corner img{width:100%;height:auto;display:block}
+
 /* ============ TYPOGRAPHY ============ */
 .eyebrow{
   font-family:var(--sans);font-weight:400;font-size:clamp(.56rem,2vw,.68rem);
@@ -108,13 +115,6 @@ body::after{
   font-size:clamp(1.6rem,7.5vw,2.4rem);
 }
 .names .amp{font-family:var(--serif);font-style:italic;font-size:clamp(1rem,4vw,1.5rem);color:var(--gold-deep)}
-/* corner botanicals, aligned with the outer gold line (inset 0) */
-.corner{position:absolute;z-index:5;pointer-events:none;width:clamp(110px,24vw,190px)}
-.corner.tl{top:0;left:0}
-.corner.tr{top:0;right:0;transform:scaleX(-1)}
-.corner.bl{bottom:0;left:0;transform:scaleY(-1);width:clamp(95px,20vw,150px)}
-.corner.br{bottom:0;right:0;transform:scale(-1);width:clamp(95px,20vw,150px)}
-.corner img{width:100%;height:auto;display:block}
 .verse{
   font-family:var(--serif);font-style:italic;font-size:clamp(.9rem,3.2vw,1.05rem);
   color:var(--ink);max-width:40ch;margin:0 auto;line-height:1.6;
@@ -129,28 +129,31 @@ body::after{
 }
 .photo-frame::before{content:"";position:absolute;inset:5px;border:1px solid rgba(184,145,47,.3);pointer-events:none;z-index:3}
 .photo-area{
-  position:relative;overflow:hidden;aspect-ratio:4/3;background:#e9e2cd;
+  position:relative;overflow:hidden;min-height:180px;max-height:300px;background:#e9e2cd;
+  display:flex;align-items:center;justify-content:center;
 }
-.photo-area img{width:100%;height:100%;object-fit:cover;display:none}
-.photo-area video{width:100%;height:100%;object-fit:cover;display:none;transform:scaleX(1)}
-.photo-area.live video{display:block}
-.photo-area.live .placeholder{display:none}
-.cam-badge{
-  position:absolute;top:12px;left:12px;z-index:4;display:flex;align-items:center;gap:7px;
-  font-family:var(--sans);font-weight:300;letter-spacing:.24em;text-transform:uppercase;font-size:.55rem;
-  color:#fdf8e8;background:rgba(35,58,36,.72);padding:6px 12px;
-  opacity:0;pointer-events:none;transition:opacity .6s ease;
+/* Grid of thumbnails (multi-select) */
+.thumbs{
+  display:none;flex-wrap:wrap;gap:5px;padding:6px;width:100%;max-height:300px;overflow-y:auto;
 }
-.cam-badge .dot{width:7px;height:7px;border-radius:50%;background:#d97b6c;animation:hintPulse 1.6s ease-in-out infinite}
-.photo-area.live .cam-badge.on{opacity:1}
-.flash{position:absolute;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none;transition:opacity .12s ease}
-.flash.on{opacity:.9}
+.thumbs.has-items{display:flex}
+.thumb{
+  position:relative;flex:1 1 30%;min-width:70px;aspect-ratio:1;overflow:hidden;
+  border:1px solid rgba(184,145,47,.5);background:#dfd7c0;
+}
+.thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .vtag{
+  position:absolute;right:4px;bottom:4px;display:flex;align-items:center;gap:3px;
+  font-family:var(--sans);font-size:.5rem;letter-spacing:.12em;color:#fdf8e8;
+  background:rgba(35,58,36,.75);padding:3px 7px;
+}
 .placeholder{
-  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-  padding:0 28px;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:26px 28px;color:var(--ink);
 }
-.placeholder svg{width:44px;height:44px;color:var(--gold);opacity:.85}
-.placeholder p{font-family:var(--serif);font-style:italic;font-size:clamp(1rem,3.6vw,1.12rem);line-height:1.6}
+.thumbs.has-items ~ .placeholder{display:none}
+.placeholder svg{width:40px;height:40px;color:var(--gold);opacity:.85}
+.placeholder p{font-family:var(--serif);font-style:italic;font-size:clamp(.95rem,3.4vw,1.08rem);line-height:1.55}
 
 /* ============ BUTTONS ============ */
 .btn{
@@ -237,20 +240,16 @@ body::after{
 <!-- shared SVG defs -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e2c26c"/><stop offset="1" stop-color="#a37f26"/>
-    </linearGradient>
-    <g id="flourish">
-      <path d="M-40,0 C-26,-8 -14,-8 -6,0 C-14,8 -26,8 -40,0 Z M40,0 C26,-8 14,-8 6,0 C14,8 26,8 40,0 Z" fill="url(#goldGrad)"/>
-      <circle cx="0" cy="0" r="3.2" fill="url(#goldGrad)"/>
-      <circle cx="-48" cy="0" r="1.8" fill="#b8912f"/><circle cx="48" cy="0" r="1.8" fill="#b8912f"/>
-    </g>
     <g id="cameraIcon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="7" width="20" height="15" rx="2.5"/>
       <path d="M8 7l1.6-2.4A2 2 0 0 1 11.3 3.5h1.4a2 2 0 0 1 1.7 1.1L16 7"/>
       <circle cx="12" cy="14" r="4.2"/>
       <circle cx="12" cy="14" r="0.6" fill="currentColor" stroke="none"/>
       <circle cx="18" cy="10.5" r="0.6" fill="currentColor" stroke="none"/>
+    </g>
+    <g id="videoIcon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="5" width="15" height="14" rx="2.5"/>
+      <path d="M17 10l5-3v10l-5-3z"/>
     </g>
   </defs>
 </svg>
@@ -282,29 +281,26 @@ body::after{
         <span class="n2">John</span>
       </h1>
 
-      <p class="verse">Gracias por acompañarnos en este día tan especial.<br>Captura el momento y envíanos tus fotos:<br>formarán parte de nuestro álbum de recuerdos.</p>
+      <p class="verse">Gracias por acompañarnos en este día tan especial.<br>Captura el momento y envíanos tus fotos y vídeos.</p>
 
-      <!-- Área de vista previa -->
+      <!-- Área de vista previa (miniaturas) -->
       <div class="photo-frame">
-        <div class="photo-area" id="photoArea">
-          <video id="camVideo" playsinline muted autoplay></video>
-          <img id="preview" alt="Vista previa de tu foto">
-          <div class="cam-badge"><span class="dot"></span>Cámara en vivo</div>
-          <div class="flash" id="flash"></div>
+        <div class="photo-area">
+          <div class="thumbs" id="thumbs"></div>
           <div class="placeholder" id="placeholder">
-            <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true"><use href="#cameraIcon"/></svg>
-            <p>Haz una foto o elige una<br>de tu galería</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cameraIcon"/></svg>
+            <p>Haz una foto o elige varias<br>de tu galería</p>
           </div>
         </div>
       </div>
 
-      <!-- Botón 1: cámara nativa (móvil) -->
+      <!-- Botón 1: cámara nativa del móvil -->
       <button class="btn" id="btnCamera" type="button" style="margin-top:16px">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="color:#fdf8e8"><use href="#cameraIcon"/></svg>
         Tomar foto
       </button>
 
-      <!-- Botón 2: galería -->
+      <!-- Botón 2: galería (varias fotos y vídeos) -->
       <button class="btn ghost" id="btnGallery" type="button">
         Elegir de la galería
       </button>
@@ -318,7 +314,7 @@ body::after{
       <!-- Indicador de carga -->
       <div class="spinner-wrap" id="spinner">
         <div class="spinner"></div>
-        <span>Enviando tu foto…</span>
+        <span id="spinnerText">Enviando…</span>
       </div>
 
       <p class="footer-line">Con todo nuestro amor</p>
@@ -327,9 +323,9 @@ body::after{
   </div>
 </main>
 
-<!-- Inputs ocultos: aquí se abre la cámara / galería -->
+<!-- Inputs: cámara nativa / galería (múltiple, fotos y vídeos) -->
 <input type="file" id="inputCapture" accept="image/*" capture="environment" hidden>
-<input type="file" id="inputGallery" accept="image/*" hidden>
+<input type="file" id="inputGallery" accept="image/*,video/*" multiple hidden>
 
 <!-- Toast -->
 <div class="toast" id="toast" role="alert"></div>
@@ -355,131 +351,63 @@ const TELEGRAM_CHAT_ID   = "-1004358543904";
 
 const inputCapture = document.getElementById('inputCapture');
 const inputGallery = document.getElementById('inputGallery');
-const preview      = document.getElementById('preview');
-const placeholder  = document.getElementById('placeholder');
-const photoArea    = document.getElementById('photoArea');
-const camVideo     = document.getElementById('camVideo');
-const flash        = document.getElementById('flash');
+const thumbs       = document.getElementById('thumbs');
 const btnCamera    = document.getElementById('btnCamera');
 const btnGallery   = document.getElementById('btnGallery');
 const btnSend      = document.getElementById('btnSend');
 const spinner      = document.getElementById('spinner');
+const spinnerText  = document.getElementById('spinnerText');
 const toast        = document.getElementById('toast');
 
-let selectedFile = null;
-let camStream    = null;
-let badgeTimer   = null;
+let selectedFiles = []; // array de File (fotos y vídeos)
 
-/* ---------- Cámara en vivo ---------- */
-async function startCamera() {
-  // Si ya hay una foto hecha, limpiamos para volver a la cámara
-  selectedFile = null;
-  preview.style.display = 'none';
-  preview.src = '';
-  btnSend.disabled = true;
+/* ---------- Selección de archivos ---------- */
+function onFilesSelected(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    return; // navegador sin soporte: se queda el placeholder + galería
-  }
-  try {
-    camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 2560 } },
-      audio: false
-    });
-    camVideo.srcObject = camStream;
-    await camVideo.play();
-    photoArea.classList.add('live');
-    // Insignia: se muestra unos segundos y luego desaparece sola
-    const badge = photoArea.querySelector('.cam-badge');
-    badge.classList.add('on');
-    clearTimeout(badgeTimer);
-    badgeTimer = setTimeout(() => badge.classList.remove('on'), 3000);
-  } catch (err) {
-    // Permiso denegado o sin cámara: mostramos el mensaje clásico
-    stopCamera();
-  }
-}
-
-function stopCamera() {
-  if (camStream) {
-    camStream.getTracks().forEach(t => t.stop());
-    camStream = null;
-  }
-  clearTimeout(badgeTimer);
-  photoArea.querySelector('.cam-badge').classList.remove('on');
-  photoArea.classList.remove('live');
-}
-
-/* Captura un fotograma en proporción 4:3 */
-function captureFromVideo() {
-  if (!camStream || !camVideo.videoWidth) return;
-
-  const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
-  // Recorte centrado 4:3
-  const targetRatio = 4 / 3;
-  let sw, sh;
-  if (vw / vh > targetRatio) { sh = vh; sw = vh * targetRatio; }
-  else { sw = vw; sh = vw / targetRatio; }
-  const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = 1200; canvas.height = 900;
-  canvas.getContext('2d').drawImage(camVideo, sx, sy, sw, sh, 0, 0, 900, 1200);
-
-  // Efecto flash
-  flash.classList.add('on');
-  setTimeout(() => flash.classList.remove('on'), 180);
-
-  canvas.toBlob((blob) => {
-    selectedFile = new File([blob], 'foto-boda.jpg', { type: 'image/jpeg' });
-    preview.src = URL.createObjectURL(blob);
-    preview.style.display = 'block';
-    stopCamera(); // detenemos la cámara tras capturar
-    btnSend.disabled = false;
-  }, 'image/jpeg', 0.92);
-}
-
-// Arrancamos la cámara al cargar la página
-startCamera();
-
-/* ---------- Selección de imagen ---------- */
-function onFileSelected(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  selectedFile = file;
-
-  // Vista previa
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    preview.src = e.target.result;
-    preview.style.display = 'block';
-    placeholder.style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-
+  selectedFiles = files;
+  renderThumbs();
   btnSend.disabled = false;
 }
 
-inputCapture.addEventListener('change', onFileSelected);
-inputGallery.addEventListener('change', onFileSelected);
+function renderThumbs() {
+  thumbs.innerHTML = '';
+  selectedFiles.forEach((file) => {
+    const item = document.createElement('div');
+    item.className = 'thumb';
+    const url = URL.createObjectURL(file);
+
+    if (file.type.startsWith('video/')) {
+      const v = document.createElement('video');
+      v.src = url; v.muted = true; v.playsInline = true;
+      v.addEventListener('loadeddata', () => { try { v.currentTime = 0.5; } catch(e){} });
+      item.appendChild(v);
+      const tag = document.createElement('span');
+      tag.className = 'vtag';
+      tag.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" style="color:#fdf8e8"><use href="#videoIcon"/></svg>VÍDEO';
+      item.appendChild(tag);
+    } else {
+      const img = document.createElement('img');
+      img.src = url; img.alt = '';
+      item.appendChild(img);
+    }
+    thumbs.appendChild(item);
+  });
+  thumbs.classList.toggle('has-items', selectedFiles.length > 0);
+}
+
+inputCapture.addEventListener('change', onFilesSelected);
+inputGallery.addEventListener('change', onFilesSelected);
 
 /* ---------- Botones ---------- */
 btnCamera.addEventListener('click', () => {
-  if (camStream) {
-    captureFromVideo();             // cámara en vivo: capturamos el fotograma
-    return;
-  }
-  if (selectedFile || preview.style.display === 'block') {
-    startCamera();                  // ya había una foto: volvemos a la cámara
-    return;
-  }
-  inputCapture.value = '';          // sin cámara web (permiso denegado, etc.):
-  inputCapture.click();             // abrimos la cámara nativa del móvil
+  inputCapture.value = '';
+  inputCapture.click();   // abre la app de Cámara del móvil; al confirmar volvemos aquí
 });
 btnGallery.addEventListener('click', () => {
   inputGallery.value = '';
-  inputGallery.click();             // abre el selector de archivos
+  inputGallery.click();   // selector de galería (múltiple, fotos y vídeos)
 });
 
 /* ---------- Toast ---------- */
@@ -492,10 +420,10 @@ function showToast(message, isError = false) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
-/* ---------- Envío a Telegram ---------- */
+/* ---------- Envío a Telegram (uno a uno, sin texto) ---------- */
 btnSend.addEventListener('click', async () => {
-  if (!selectedFile) {
-    showToast('Primero selecciona una foto', true);
+  if (!selectedFiles.length) {
+    showToast('Primero selecciona una foto o vídeo', true);
     return;
   }
 
@@ -511,41 +439,52 @@ btnSend.addEventListener('click', async () => {
   btnSend.querySelector('.btn-label').textContent = 'Enviando…';
   spinner.classList.add('show');
 
+  let sent = 0;
   try {
-    // Construimos el FormData para sendPhoto
-    const formData = new FormData();
-    formData.append('chat_id', TELEGRAM_CHAT_ID);
-    formData.append('photo', selectedFile, 'foto-boda.jpg');
-    formData.append('caption', '📸 Nueva foto de la boda de Janire & John');
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      spinnerText.textContent = `Enviando ${i + 1} de ${selectedFiles.length}…`;
 
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-      { method: 'POST', body: formData }
-    );
+      const isVideo = file.type.startsWith('video/');
+      const method  = isVideo ? 'sendVideo' : 'sendPhoto';
+      const field   = isVideo ? 'video' : 'photo';
 
-    const data = await response.json();
+      const formData = new FormData();
+      formData.append('chat_id', TELEGRAM_CHAT_ID);
+      formData.append(field, file);
 
-    if (data.ok) {
-      showToast('¡Foto enviada con éxito, gracias!');
-      // Reiniciamos la interfaz para la siguiente foto
-      selectedFile = null;
-      preview.style.display = 'none';
-      preview.src = '';
-      placeholder.style.display = 'flex';
-      inputCapture.value = '';
-      inputGallery.value = '';
-      btnSend.disabled = true;
-    } else {
-      throw new Error(data.description || 'Error de Telegram');
+      const response = await fetch(
+        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
+        { method: 'POST', body: formData }
+      );
+
+      const data = await response.json();
+      if (!data.ok) throw new Error(data.description || 'Error de Telegram');
+      sent++;
     }
+
+    showToast(sent === 1
+      ? '¡Foto enviada con éxito, gracias!'
+      : `¡${sent} archivos enviados con éxito, gracias!`);
+
+    // Reiniciamos para el siguiente envío
+    selectedFiles = [];
+    thumbs.innerHTML = '';
+    thumbs.classList.remove('has-items');
+    inputCapture.value = '';
+    inputGallery.value = '';
+    btnSend.disabled = true;
   } catch (error) {
     console.error('Error al enviar:', error);
-    showToast('No se pudo enviar la foto. Inténtalo de nuevo.', true);
+    showToast(sent > 0
+      ? `Se enviaron ${sent}, pero falló el resto. Inténtalo de nuevo.`
+      : 'No se pudo enviar. Inténtalo de nuevo.', true);
     btnSend.disabled = false;
   } finally {
     spinner.classList.remove('show');
+    spinnerText.textContent = 'Enviando…';
     btnSend.classList.remove('sending');
-    btnSend.querySelector('.btn-label').textContent = 'Enviar Foto';
+    btnSend.querySelector('.btn-label').textContent = 'Enviar';
   }
 });
 </script>
